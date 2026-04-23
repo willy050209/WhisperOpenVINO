@@ -54,17 +54,34 @@ public class WhisperInferenceService(ModelManagerService modelManager, ILogger<W
                 logger.LogInformation("偵測到可用 OpenVINO 裝置: {Devices}", string.Join(", ", availableDevices));
                 
                 // 優先順序: NPU -> GPU -> CPU
-                if (availableDevices.Contains("NPU"))
+                
+                // 1. 尋找 NPU (包含 NPU.0 等變體)
+                var npuDevice = availableDevices
+                    .Where(d => d.StartsWith("NPU", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(d => d)
+                    .FirstOrDefault();
+
+                if (npuDevice != null)
                 {
-                    _detectedDevice = "NPU";
-                }
-                else if (availableDevices.Contains("GPU"))
-                {
-                    _detectedDevice = "GPU";
+                    _detectedDevice = npuDevice;
                 }
                 else
                 {
-                    _detectedDevice = "CPU";
+                    // 2. 尋找 GPU (包含 GPU.0, GPU.1 等)
+                    // 在 Intel 平台上，通常 GPU.0 是內顯，GPU.1 是獨顯 (如果有)，優先選編號大的
+                    var gpuDevice = availableDevices
+                        .Where(d => d.StartsWith("GPU", StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(d => d)
+                        .FirstOrDefault();
+
+                    if (gpuDevice != null)
+                    {
+                        _detectedDevice = gpuDevice;
+                    }
+                    else if (availableDevices.Any(d => d.Equals("CPU", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _detectedDevice = "CPU";
+                    }
                 }
             }
             else
@@ -83,8 +100,8 @@ public class WhisperInferenceService(ModelManagerService modelManager, ILogger<W
             return _detectedDevice;
         }
 
-        // 備用方案: 傳統探測 (如果 C API 偵測失敗)
-        var devicesToTry = new[] { "GPU" }; // 這裡不再輕易嘗試 NPU，因為它最容易崩潰
+        // 備用方案: 傳統探測 (如果 C API 偵測失敗或列表為空)
+        var devicesToTry = new[] { "GPU" };
         
         foreach (var device in devicesToTry)
         {
