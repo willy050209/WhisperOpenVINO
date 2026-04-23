@@ -45,7 +45,7 @@ public class WhisperInferenceService(ModelManagerService modelManager, ILogger<W
         if (_detectedDevice != null) return _detectedDevice;
 
         // 優先順序: NPU -> GPU -> CPU
-        var devicesToTry = new[] { "NPU", "GPU", "CPU" };
+        var devicesToTry = new[] { "NPU", "GPU" };
         
         foreach (var device in devicesToTry)
         {
