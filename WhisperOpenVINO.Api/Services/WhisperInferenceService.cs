@@ -44,33 +44,67 @@ public class WhisperInferenceService(ModelManagerService modelManager, ILogger<W
     {
         if (_detectedDevice != null) return _detectedDevice;
 
-        // 優先順序: NPU -> GPU -> CPU
-        var devicesToTry = new[] { "NPU", "GPU" };
+        try
+        {
+            logger.LogInformation("正在使用 OpenVINO C API 探測可用裝置...");
+            var availableDevices = OpenVinoDeviceDetector.GetAvailableDevices(logger);
+            
+            if (availableDevices.Count > 0)
+            {
+                logger.LogInformation("偵測到可用 OpenVINO 裝置: {Devices}", string.Join(", ", availableDevices));
+                
+                // 優先順序: NPU -> GPU -> CPU
+                if (availableDevices.Contains("NPU"))
+                {
+                    _detectedDevice = "NPU";
+                }
+                else if (availableDevices.Contains("GPU"))
+                {
+                    _detectedDevice = "GPU";
+                }
+                else
+                {
+                    _detectedDevice = "CPU";
+                }
+            }
+            else
+            {
+                logger.LogWarning("未偵測到任何 OpenVINO 加速裝置，將使用預設探測邏輯。");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "探測裝置時發生非預期錯誤");
+        }
+
+        if (_detectedDevice != null)
+        {
+            logger.LogInformation("選擇推論裝置: {Device}", _detectedDevice);
+            return _detectedDevice;
+        }
+
+        // 備用方案: 傳統探測 (如果 C API 偵測失敗)
+        var devicesToTry = new[] { "GPU" }; // 這裡不再輕易嘗試 NPU，因為它最容易崩潰
         
         foreach (var device in devicesToTry)
         {
             try
             {
-                logger.LogInformation("正在嘗試探測 OpenVINO 裝置: {Device}...", device);
+                logger.LogInformation("正在嘗試傳統探測 OpenVINO 裝置: {Device}...", device);
+                using var testProcessor = _factory.CreateBuilder()
+                    .WithOpenVinoEncoder(modelManager.GetOpenVinoXmlPath(), device, null)
+                    .Build();
                 
-                // 嘗試建立處理器
-                var builder = _factory.CreateBuilder()
-                    .WithOpenVinoEncoder(modelManager.GetOpenVinoXmlPath(), device, null);
-                
-                using var testProcessor = builder.Build();
-                
-                // 如果到這裡沒崩潰，且沒拋出異常，暫且認為成功
-                logger.LogInformation("成功初始化 OpenVINO 裝置: {Device}", device);
                 _detectedDevice = device;
                 return device;
             }
             catch (Exception ex)
             {
-                logger.LogWarning("裝置 {Device} 初始化失敗: {Message}", device, ex.Message);
+                logger.LogWarning("裝置 {Device} 探測失敗: {Message}", device, ex.Message);
             }
         }
 
-        logger.LogWarning("所有高效能裝置均不可用，使用 CPU 模式。");
+        logger.LogWarning("所有高效能裝置均不可用或探測失敗，使用 CPU 模式。");
         _detectedDevice = "CPU";
         return _detectedDevice;
     }
