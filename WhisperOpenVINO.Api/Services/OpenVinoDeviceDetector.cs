@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 
 namespace WhisperOpenVINO.Api.Services;
@@ -30,8 +30,6 @@ public static class OpenVinoDeviceDetector
     {
         var deviceList = new List<string>();
         IntPtr corePtr = IntPtr.Zero;
-        ov_available_devices_t availableDevices = default;
-
         try
         {
             int status = ov_core_create(out corePtr);
@@ -41,7 +39,7 @@ public static class OpenVinoDeviceDetector
                 return deviceList;
             }
 
-            status = ov_core_get_available_devices(corePtr, out availableDevices);
+            status = ov_core_get_available_devices(corePtr, out ov_available_devices_t availableDevices);
             if (status == 0)
             {
                 int count = (int)availableDevices.size.ToUInt32();
