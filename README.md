@@ -19,6 +19,15 @@
 - **音訊處理**: Xabe.FFmpeg
 - **API 文件**: Swashbuckle (Swagger)
 
+## ⚠️ 平台相依性說明
+
+目前本專案 **僅支援 Windows 平台** (x64)，原因如下：
+- **原生庫套件**：專案目前引用了 `OpenVINO.runtime.win` 專用套件。
+- **MSBuild 腳本**：內建的 `CopyOpenVinoDlls` 腳本硬編碼了 Windows 的路徑格式與 DLL 部署邏輯。
+- **音訊處理**：雖然 FFmpeg 是跨平台的，但目前的自動下載與路徑設定主要針對 Windows 進行測試。
+
+若需在 Linux 上執行，需修改 `.csproj` 以引用對應系統的 OpenVINO Runtime 並調整 DLL 複製目標。
+
 ## 📦 安裝與執行
 
 1. **複製專案**
@@ -39,6 +48,20 @@
      ```bash
      curl -X POST -F "file=@audio.mp3" http://localhost:5251/api/transcribe
      ```
+
+## 📦 部署至無 .NET Runtime 環境 (獨立佈署)
+
+如果您希望在未安裝 .NET Runtime 的裝置上執行此服務，可以使用「獨立式佈署」(Self-contained deployment)。這會將所有必要的 Runtime 檔案與原生庫打包在一起。
+
+#### 1. 發佈為資料夾 (推薦)
+這會產生一個包含 `.exe` 與所有依賴項的資料夾：
+```powershell
+dotnet publish -c Release -r win-x64 --self-contained true
+```
+
+> **注意**：
+> - `-r win-x64` 指定了目標平台為 Windows x64，若目標為 Linux 請改為 `linux-x64`。
+> - 產出路徑為：`WhisperOpenVINO.Api/bin/Release/net10.0/win-x64/publish/`。
 
 ## ✅ 已修復：GGML_ASSERT 異常
 
