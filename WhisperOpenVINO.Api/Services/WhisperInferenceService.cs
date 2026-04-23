@@ -14,12 +14,13 @@ public class WhisperInferenceService(ModelManagerService modelManager, ILogger<W
     {
         using var processor = _factory.CreateBuilder()
             .WithLanguage("auto")
+            .WithOpenVinoEncoder(modelManager.GetOpenVinoXmlPath(), "CPU", null)
             .Build();
 
         using var fileStream = File.OpenRead(wavPath);
         var resultText = new StringBuilder();
 
-        logger.LogInformation("開始執行語音辨識 (標準模式)...");
+        logger.LogInformation("開始執行語音辨識 (OpenVINO 加速模式)...");
         await foreach (var segment in processor.ProcessAsync(fileStream, ct))
         {
             resultText.Append(segment.Text);

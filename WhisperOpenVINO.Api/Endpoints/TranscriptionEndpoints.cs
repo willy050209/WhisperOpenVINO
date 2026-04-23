@@ -1,10 +1,11 @@
-using WhisperOpenVINO.Api.Models;
 using WhisperOpenVINO.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
 namespace WhisperOpenVINO.Api.Endpoints;
+
+public record TranscriptionResponse(string Text, double DurationSeconds, string Language);
 
 public static class TranscriptionEndpoints
 {

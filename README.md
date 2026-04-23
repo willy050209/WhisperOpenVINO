@@ -4,8 +4,9 @@
 
 ## 🚀 特色
 
-- **高性能辨識**：支援 Intel OpenVINO 硬體加速（CPU/iGPU/Arc GPU）。
-- **自動環境整備**：啟動時自動檢查並下載必要的 Whisper 模型與 FFmpeg 執行檔。
+- **高性能辨識**：預設啟用 Intel OpenVINO 硬體加速（CPU/iGPU/Arc GPU）。
+- **自動環境整備**：啟動時自動檢查並從 Intel Hugging Face 下載優化過的 Whisper 模型（包含 OpenVINO Encoder XML/BIN）與 FFmpeg 執行檔。
+- **部署自動化**：內建 MSBuild 腳本，建置時自動部署 OpenVINO 原生執行庫，確保開箱即用。
 - **格式自動相容**：內建音訊轉碼服務，支援上傳 MP3, WAV, M4A, FLAC 等多種格式。
 - **現代化 API**：使用 .NET 10 Minimal API 架構，簡潔高效。
 - **視覺化測試**：內建 Swagger UI，方便直接在瀏覽器進行檔案上傳與測試。
@@ -39,13 +40,13 @@
      curl -X POST -F "file=@audio.mp3" http://localhost:5251/api/transcribe
      ```
 
-## ⚠️ 故障排除：GGML_ASSERT 異常
+## ✅ 已修復：GGML_ASSERT 異常
 
-若在執行推論時遇到 `GGML_ASSERT(prev != ggml_ubcaught_exception) failed` 報錯：
+先前版本的 `GGML_ASSERT(prev != ggml_uncaught_exception) failed` 報錯已於本版本修復：
+1. **補齊依賴**：加入了 `OpenVINO.runtime.win` 套件以提供完整的 OpenVINO 執行階段。
+2. **自動部署**：透過 `.csproj` 的 `CopyOpenVinoDlls` 目標，自動將 `openvino.dll` 等原生庫複製到執行根目錄。
+3. **穩定初始化**：優化了 `WhisperInferenceService` 的初始化流程，確保在推論前正確載入 OpenVINO Encoder。
 
-1. **硬體相容性**：此錯誤通常源於 OpenVINO 與特定硬體或驅動程式的不相容。
-2. **安全模式**：本專案目前的實作已切換至**標準相容模式**（純 CPU 推論），以確保在所有環境下皆能正常運作。
-3. **開啟加速**：若需重新啟用 OpenVINO 加速，請修改 `WhisperInferenceService.cs` 並確保您的 Intel 驅動程式已更新至最新版本。
 
 ## 📝 授權
 
